@@ -121,3 +121,7 @@ For the ecosystem-wide view, see the [CUBRID Labs Ecosystem Roadmap](https://git
 |:---|:---|
 | [cubrid-rs](https://github.com/cubrid-labs/cubrid-rs) | Native Rust driver (sync + async) |
 | [sea-orm-cubrid](https://github.com/cubrid-labs/sea-orm-cubrid) | SeaORM backend for CUBRID (this package) |
+
+## Disclaimer
+
+This project is part of [CUBRID Lab](https://github.com/cubrid-lab), an independent open-source initiative for CUBRID developer tooling, and is not affiliated with, sponsored by, or endorsed by CUBRID Corporation or the official CUBRID project.

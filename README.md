@@ -1,5 +1,11 @@
 # sea-orm-cubrid
 
+<!-- CUBRID-LAB-ROLE-ICON:START -->
+<a href="https://github.com/cubrid-lab/brand">
+  <img src="https://raw.githubusercontent.com/cubrid-lab/brand/aa62d38b48d165e39f0c56ed706a9dadb090a2bb/studies/icons/sea-orm-cubrid.svg" alt="CUBRID Lab ORM icon (Rust)" width="80" />
+</a>
+<!-- CUBRID-LAB-ROLE-ICON:END -->
+
 <!-- BADGES:START -->
 [![crates.io](https://img.shields.io/crates/v/sea-orm-cubrid.svg)](https://crates.io/crates/sea-orm-cubrid)
 [![CI](https://github.com/cubrid-labs/sea-orm-cubrid/actions/workflows/ci.yml/badge.svg)](https://github.com/cubrid-labs/sea-orm-cubrid/actions/workflows/ci.yml)

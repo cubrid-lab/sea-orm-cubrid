@@ -53,6 +53,19 @@ cargo fmt
 cargo clippy --fix --allow-dirty
 ```
 
+## Pull Request Review and Merge Policy
+
+The same contributor process applies to human-written and AI-assisted
+changes (OpenCode, Codex, Claude Code, ChatGPT, Copilot, etc.).
+Use the repository's GitHub Actions CI checks for authoritative final
+validation, with local checks encouraged but not separately required.
+Review the implementation, tests, security, compatibility and documentation.
+Oracle, Copilot and `agent-review` output is optional advisory context.
+The responsible maintainer makes the final merge decision after required
+checks and actionable findings are resolved or documented. Security,
+CI permissions and release/publishing changes get independent maintainer
+scrutiny. No existing repository CI or release safeguards are waived.
+
 ## Pull Request Guidelines
 
 1. Keep changes focused and explain the motivation in the PR description.

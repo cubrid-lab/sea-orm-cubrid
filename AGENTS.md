@@ -1,5 +1,10 @@
 # AGENTS.md
 
+## Organization-wide issue and PR standards
+
+See [the cubrid-lab standard](https://github.com/cubrid-lab/.github/blob/main/docs/ISSUE_PR_COMMIT_STANDARD.md). Use clear type-only **Issue** titles (`feat:`, `bug:`, `docs:`), no required module scope. State problem/goal and verifiable completion conditions, distinguishing evidence from assumptions. Triage establishes validity, duplicates, priority and size; **PRs and commits** keep their existing Conventional Commits and CI checks. Avoid AI-agent narration, personal references and opaque internal tracking codes in issue prose.
+
+
 Project knowledge base for AI coding agents.
 
 ## Project Overview

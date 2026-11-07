@@ -6,18 +6,18 @@
 
 ## Context
 
-The CUBRID Python driver and its SQLAlchemy dialect revealed that apparently successful queries can hide transaction-scope mistakes, accidental retries after uncertain execution, stale broker handles, precision loss and unverified ORM-generated SQL. The purpose of learning from them is to **reuse verified invariants and test design**, never Python API signatures or implementation code. The current repository has its own runtime, public API and released compatibility obligations.
+sea-orm-cubrid owns the Rust SeaORM/SeaQuery CUBRID adapter. This project's correctness decisions must cover SeaORM/SeaQuery extension feasibility, Tokio driver integration, SQL generation, error and value mapping, Cargo/MSRV, and actual CUBRID tests, including negative and failure-path behavior. Passing offline tests alone is not proof of database compatibility. The accepted public API, local implementation, and actual CUBRID server behavior are the basis for requirements and test evidence.
 
 ## Decision
 
 SeaORM owns a native CUBRID SQL compilation decision and ORM results; cubrid-tokio owns transport. The currently used DbBackend::MySql proxy is **not** a CUBRID SQL compiler. A zero last_insert_id is not a verified server-generated key, and begin/commit/rollback errors cannot be silently discarded. Investigate actual upstream ProxyDatabaseTrait/SeaQuery extension possibilities, use async Rust transaction-bound connection ownership, preserve values and error results, and require real CUBRID SQL+DDL tests before stable claims.
 
-Use source-linked test cases as engineering references, then implement targeted **native-language** regression tests. Identify whether a test actually talked to CUBRID, which server/broker and client/ORM versions were used, what SQL/outcome was asserted, and whether any required case was skipped. The fact that a Python project passes its tests does **not** certify this package.
+Create targeted tests for this project's observable contracts. Record whether tests actually communicated with CUBRID, the server/broker and dependency versions, asserted SQL outcomes, and skipped cases. External test results never certify this package.
 
 ## Alternatives considered
 
 - **Rejected:** Continue MySQL SQL as a permanent native proxy; silently accept begin/commit/rollback errors; invent generated ID=0; trust offline converter tests or a coverage badge as real DB validation.
-- **Rejected:** A generic cross-language implementation copied verbatim from Python.
+- **Rejected:** Treating another package's API, implementation, or test results as this project's contract.
 - **Rejected:** Marking an unsupported/unverified feature as absent simply because one server or connector failed in a particular test.
 
 ## Consequences and trade-offs

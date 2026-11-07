@@ -7,7 +7,7 @@
 
 ## Context
 
-The CUBRID Lab language drivers and ORM adapters progressed at different rates. An optimistic package number, borrowed ORM backend, passing mocks or a green but empty integration job must not accidentally imply production readiness. The Python driver and SQLAlchemy dialect established useful regression evidence, but release rules must follow each ecosystem's real package manager and compatibility obligations.
+A tag, passing mock suite, or green job without executed database cases does not establish a ready release of sea-orm-cubrid. The release contract follows this repository's own responsibilities as the Rust SeaORM CUBRID adapter, including SeaORM/SeaQuery extension contracts, Cargo/MSRV, async error mapping, and CUBRID integration. External package versions cannot substitute for local compatibility evidence.
 
 ## Decision
 
@@ -18,7 +18,7 @@ Applicable SemVer classification: a compatible bug/security fix is generally PAT
 ## Alternatives considered
 
 - **Rejected:** Publish 1.0 after mocked proxy tests alone; mark driver 0.x requirement as tested stable; use numeric match with driver crates rather than explicit compatibility; declare the MySQL proxy a CUBRID compiler.
-- **Rejected:** One centrally synchronized release number and a generic Python-style policy for all languages; each distribution has separate SemVer, packaging and runtime constraints.
+- **Rejected:** Making this package's releases contingent on matching another repository's version number or calendar.
 - **Rejected:** Treat an issue, green mock suite, GitHub tag or draft changelog as sufficient release evidence.
 
 ## Consequences and trade-offs

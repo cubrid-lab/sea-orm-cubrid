@@ -6,7 +6,7 @@
 
 The goal is a **Rust-idiomatic CUBRID backend** that makes correct CUBRID SQL and session/result behavior available to SeaORM users. MySQL SQL generation and MySQL's dialect assumptions are **not** a supported runtime mode for the target implementation.
 
-As `pycubrid` is separate from `sqlalchemy-cubrid`, this crate should be separate from `cubrid-rs`: the driver implements CAS/connection APIs, the ORM layer owns query generation, type conversions, ORM results, schema and migration behavior. That shared idea does **not** mean reimplementing SQLAlchemy classes or copying Python's exception hierarchy in Rust.
+This SeaORM adapter owns ORM SQL generation, type/result mapping, schema and migration behavior. Its actual `cubrid-tokio` dependency owns CAS transport/connection APIs; the separation follows their verified Rust interfaces and explicit package contracts.
 
 ## Current evidence and blockers
 

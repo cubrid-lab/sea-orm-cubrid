@@ -50,6 +50,11 @@ Key characteristics:
 - Avoid `unwrap`/`expect` in library code
 - Keep public API documented
 
+
+## CUBRID correctness lessons and native regression review
+
+Before changing protocol, SQL generation, transaction handling, schema migrations, type codecs, connection recovery or release claims, review [the repository-specific engineering invariants](docs/ENGINEERING_INVARIANTS.md). These are based on concrete pycubrid/sqlalchemy-cubrid failure cases but must be implemented and tested using **this language's native interfaces**, not copied Python APIs. Distinguish mock tests, live CUBRID execution and independent differential evidence; never claim a check ran without its actual CI result. For an unrelated docs-only change, the checklist is advisory and does not mandate unnecessary database jobs. Existing repository review and merge requirements remain authoritative.
+
 ## Development Workflow (cubrid-lab org standard)
 
 Apply **identical PR review and merge criteria** regardless of whether

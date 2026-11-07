@@ -9,7 +9,7 @@
 
 The current SeaORM proxy delegates SQL execution to cubrid-tokio, but `Database::connect_proxy(DbBackend::MySql, ...)` produces MySQL SQL, not CUBRID-native SQL. The proxy implementation drops begin/commit/rollback errors and substitutes last_insert_id=0. The available public extension traits may constrain independent SQL construction and error reporting.
 
-The CUBRID Python driver and SQLAlchemy dialect provide engineering lessons about protocol, SQL and transaction correctness, **not** implementations or cross-language public APIs to copy.
+This decision is grounded in sea-orm-cubrid's own public interfaces, repository code, and CUBRID correctness requirements. External implementations cannot substitute for local validation.
 
 ## Decision
 

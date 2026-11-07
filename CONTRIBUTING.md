@@ -26,7 +26,7 @@ cargo test --all-targets --all-features
 
 ## Reproducible development setup
 
-Before changing code, follow [the repository-specific development setup](docs/DEVELOPMENT_SETUP.md) and [ADR 0005](docs/adr/0005-development-setup.md). Start from the committed language-native manifest and a **clean checkout**, run non-mutating local checks, and record the actual toolchain and results. Do not interpret a mock suite or missing/fully skipped integration tests as real CUBRID verification, and do not alter published module paths, MSRV or release tooling to work around an unverified local setup issue. The setup ADR is Proposed and awaits review.
+Before changing code, follow [the repository-specific development setup](docs/DEVELOPMENT_SETUP.md) and [ADR 0005](docs/adr/0005-development-setup.md). Start from the committed language-native manifest and a **clean checkout**, run non-mutating local checks, and record the actual toolchain and results. Do not interpret a mock suite or missing/fully skipped integration tests as real CUBRID verification, and do not alter Cargo/MSRV, SeaORM feature graph or driver crate bounds or release tooling to work around an unverified local setup issue. The setup ADR is Proposed and awaits review.
 
 ## Test-driven implementation
 
@@ -34,7 +34,7 @@ For bug fixes or behavioral features, start from a reviewed interface/SQL/transa
 
 ## CUBRID correctness and regression evidence
 
-For changes to CUBRID protocol, connection lifecycle, error handling, results, native SQL, ORM migrations, supported versions or releases, read [this repository's engineering invariants](docs/ENGINEERING_INVARIANTS.md) **before** implementation and review. The checks are adapted from the real bugs and tests of `pycubrid` and `sqlalchemy-cubrid`, not a Python API port. In the pull request, describe the behavioral invariant affected, the normal and failure cases tested, and which checks were offline, real CUBRID or independently compared with JDBC. State the exact CUBRID/runtime/driver versions and test outcomes when claiming database compatibility. **Do not mark tests as passed when they were skipped, missing or never executed.**
+For changes to SeaORM/SeaQuery public interfaces, SQL/result mapping and Rust transaction errors, read [this repository's engineering invariants](docs/ENGINEERING_INVARIANTS.md) **before** implementation and review. The requirements follow the Rust SeaORM adapter and its own async/SQL boundaries, not another package's failure reports or test results. In the pull request, describe the behavioral invariant affected, the normal and failure cases tested, and which checks were offline, real CUBRID or independently compared with JDBC. State the exact CUBRID/runtime/driver versions and test outcomes when claiming database compatibility. **Do not mark tests as passed when they were skipped, missing or never executed.**
 
 For documentation-only or nonbehavioral changes, explain why a database run is unnecessary rather than manufacturing an integration result. The final **release candidate** still follows the repository's full live-CUBRID release gate, separate from ordinary PR path optimization. These expectations supplement, and do not weaken, the established review/CI rules.
 

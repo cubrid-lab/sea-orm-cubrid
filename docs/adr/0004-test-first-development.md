@@ -7,7 +7,7 @@
 
 ## Context
 
-Python driver and SQLAlchemy development surfaced errors that ordinary success-only tests did not catch: broker session life, uncertain execution, stale cursor handles, transaction/DDL rollback and precision/type fidelity. The project will complete its interface, behavioral and release design **before broad implementation**, then use Test-Driven Development (TDD) to prevent regressions in each small feature.
+This repository needs targeted failure-path tests for its own SeaORM/SeaQuery extension contracts, Cargo/MSRV, async error mapping, and CUBRID integration; success-only tests cannot establish broker failures, transaction boundaries, and value fidelity. The project will complete its interface, behavioral and release design **before broad implementation**, then use Test-Driven Development (TDD) to prevent regressions in each small feature.
 
 TDD is not proof of CUBRID compatibility by itself. Code-level mocks and failing unit tests cannot replace actual broker/database execution. A newly written test that passes on today's code does not demonstrate a successful Red step; a failing test must fail for the **intended behavioral reason**.
 

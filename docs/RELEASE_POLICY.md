@@ -1,0 +1,94 @@
+# Release and compatibility policy (proposed)
+
+> **Decision stage:** Draft policy for review, 2026-11-07. This document is a release contract proposal; no version, tag, dependency or publication workflow changes are made by this PR. Architecture/implementation follow only after approval and merge.
+
+## Rust SeaORM adapter correctness and verification
+
+Review [the repository-specific engineering invariants](ENGINEERING_INVARIANTS.md) before accepting behavioral CUBRID changes or declaring database compatibility. The checklist follows this repository's own API, implementation risks, and verifiable CUBRID behavior. **Written review rules are not executable checks**: the real-CUBRID release gate below remains mandatory, and any missing test coverage is tracked as implementation work rather than claimed complete.
+
+## Reproducible development setup prerequisite
+
+[Setup ADR 0005](adr/0005-development-setup.md) and the [language-specific development setup guide](DEVELOPMENT_SETUP.md) define the pre-implementation environment contract. A release candidate must be built from a clean checkout with the reviewed manifest and supported compiler/runtime, and must verify the **actual distributed artifact** independently of local workspace source. Setup ready, offline tests passed, live CUBRID verified, and registry publication confirmed are distinct outcomes. Document missing lint config, non-resolving module/crate dependency or absent integration harness as **blocking/unverified**, not green. A passing unit suite cannot waive the candidate's real-database gate. Changing the minimum supported consumer runtime/module path/MSRV is separately reviewed for SemVer impact; no such change is authorized by this setup documentation.
+
+## Version numbers
+
+Apply Cargo SemVer to `sea-orm-cubrid` and its public SeaORM adapter behavior. Driver crates are tested dependencies, not release authorities.
+
+| Change | Before 1.0 | From 1.0 onward |
+| --- | --- | --- |
+| New backward-compatible functionality | MINOR (0.y+1.0) | MINOR |
+| Incompatible public API, supported runtime, connection/result behavior, or SQL/migration contract | MINOR with explicit migration notes | MAJOR |
+| Backward-compatible defect, security, documentation or tooling fix | PATCH when published behavior remains compatible | PATCH |
+| Internal-only code/documentation without user-visible change | No release required unless part of a reviewed release batch | Same |
+
+A severe correctness defect is repaired promptly; explain any observable change, regression tests and consumer impact. Do not conceal an incompatible change as PATCH. Do not infer compatibility from unchanged type signatures alone: SQL meaning, column value mapping and schema migration behavior can break applications.
+
+A release's **version, supported runtime/database ranges, published package exports, immutable tag and release notes must agree**. The new version is not considered released merely because a manifest was edited or a draft PR merged.
+
+## SeaORM adapter and Cargo dependency compatibility
+
+- Verify actual `cubrid-tokio`/`cubrid-protocol` Cargo version requirements and the public SeaORM/SeaQuery API before declaring an adapter dependency range supported.
+- A breaking driver dependency change requires **adapter compatibility testing**, not an automatic adapter MAJOR. Increase `sea-orm-cubrid`'s own MAJOR only when its public support or observable ORM behavior changes incompatibly.
+- Stable adapter 1.0 requires the native SQL backend feasibility, correct transaction/error and generated-ID semantics, real CUBRID ORM tests, and external Cargo consumer resolution. Shared first-digit versions with a driver are not proof.
+- Publish only independently verified supported Rust MSRV, SeaORM/SeaQuery versions, driver crate versions, and CUBRID server versions; identify unverified combinations explicitly.
+
+## Workflow and release notes
+
+1. Merge scoped code/test/documentation PRs with required final-head CI. Architectural notes and mocked tests are not substitutes for live CUBRID tests.
+2. Open a **reviewed release candidate PR** containing the proposed version change, `Cargo.toml` metadata, crate version and dependency ranges, release notes, API/compatibility notes, and any migration instructions. No automatic publish directly from arbitrary feature PR merges.
+3. Run an explicit **release preflight** on the exact candidate commit: quality/lint/tests, real supported database matrix where the release makes DB behavior claims, package/build artifact verification, dependency lower-bound and consumer smoke tests, and security/secret checks. Fail closed for missing, failed, cancelled or skipped required release checks.
+4. A maintainer approves the candidate and release notes. Release/publishing permission changes need independent security review. Only then create immutable tags and publish the reviewed crate to crates.io. Do not overwrite tags or re-publish an existing version.
+5. Verify the public registry artifact and GitHub Release match the reviewed commit and tag. Record evidence and a release recovery/retry procedure; do not mask a partial publish as a success.
+
+Recommended release-note headings (omit empty sections): **Highlights**, **Breaking changes / Migration**, **Fixes**, **Compatibility**, **Dependencies**, and **Contributors**. Attribute contributions inline with `by @username` where provenance is known; optionally welcome verified first-time contributors. Avoid broken Markdown line wrapping, misleading first-contribution claims, and autogenerated duplicate contributor credits.
+
+Release automation may prepare a candidate PR, but **must not skip the review, release gate or registry verification**. Use reviewed Cargo-native release tooling and verify actual registry dependencies.
+
+## Mandatory live-CUBRID release verification
+
+**Release rule, not an existing CI claim:** Before publishing **any release that changes or claims database behavior**, run DB-backed tests against the exact candidate commit and packageable `sea-orm-cubrid` candidate crate; before **1.0**, complete the full documented supported CUBRID version matrix. For ordinary doc-only or tooling PRs, lightweight checks may be sufficient, but the eventual **release candidate** must not use the docs-only shortcut to skip a required database gate.
+
+**Minimum evidence by responsibility:**
+
+| Verification category | Database driver | ORM/dialect adapter |
+| --- | --- | --- |
+| Connection and session | Broker/CAS handshake, version discovery, disconnect/reconnect, stale handles | Driver connection acquisition and correct transaction-bound session |
+| Query behavior | Prepared/parameterized execution, SELECT and DML results, cursor/stream cleanup | Actual ORM-generated SELECT/JOIN/CRUD SQL, result mapping, associations |
+| Data fidelity | NULL, BIGINT, decimal precision, text/Unicode, bytes, date/time, collections as supported | ORM-level round trips and type inference/conversion for the same supported types |
+| Transactions | Commit, rollback, concurrent clients, failed/uncertain commit, isolation | Nested transactions/savepoints if advertised, rollback and error propagation |
+| Failure/recovery | Timeout, CAS restart, broken connection, SQL/server errors, no unsafe replay | Failed queries/transactions, connection loss and no silent success |
+| Schema/migration | Catalog or DDL only where the driver advertises support | Schema discovery and real CREATE/ALTER/index/constraint changes, destructive-change safety and recovery |
+
+**Matrix and test validity:**
+
+1. Identify actual CUBRID **server and broker** versions under test and the exact driver/ORM/runtime/dependency versions. A proposed range (e.g. 10.2–11.4) is not a verified range until each advertised version family is tested or its limits explicitly stated.
+2. Provision an isolated CUBRID database with a reliable readiness probe. Create unique test tables or databases; clean up safely even after failures. Never run destructive migration tests on shared or production databases.
+3. Run non-vacuous tests that **connect to the server, execute SQL and assert stored/read results**. A healthy Docker container, successful ping, mock test, query snapshot or passing job with zero integration tests is **not evidence**.
+4. Include both success and failure-path evidence. Add selected JDBC-based semantic comparisons where valuable for rows, types and transaction outcomes, but do not depend on byte-for-byte parity or use JDBC as an implementation blueprint.
+5. Record the tested commit SHA, CUBRID version and image/reference digest where possible, test command, counts of passed/failed/skipped cases, and artifacts/logs. Zero executed tests, missing environment, skipped required cases or failing required database jobs block the relevant release claim.
+6. Run a **release-candidate-only full verification** even when change-impact routing skips DB jobs on docs-only pull requests. Fail closed for inconclusive evidence; rerun on the exact final candidate after a code or release-manifest change.
+7. Run `cargo package`/`cargo publish --dry-run` as appropriate and compile an **external SeaORM consumer** against candidate `sea-orm-cubrid` and resolved registry driver crates. Check actual features, MSRV and public API compatibility. Workspace-patched local builds alone are insufficient.
+
+**Scope:** This is a policy requirement. Existing green CI runs are not reclassified as complete integration evidence. Implementation of new CI jobs, server provisioning and tests must be separately reviewed. No automatic 1.0 release is authorized by this document.
+
+**SeaORM-specific blocker:** `.github/workflows/ci.yml` runs fmt, clippy, offline tests and coverage but **no live CUBRID service or tests**. A claimed 95%+ coverage value is not a substitute for real DB evidence. A release gate must execute generated ORM SQL against a CUBRID database with `cubrid-tokio`, verify meaningful transaction completion (including errors), type fidelity, generated IDs, and all advertised schema/migration behavior. The current `DbBackend::MySql` generation and silent transaction callbacks prevent an unsupported native 1.0 claim.
+
+Related evidence tracker: [#27](https://github.com/cubrid-lab/sea-orm-cubrid/issues/27); native design [#28](https://github.com/cubrid-lab/sea-orm-cubrid/issues/28).
+
+## 1.0 release gate
+
+A 1.0 release requires: a reviewed/frozen public interface, documented supported runtime and CUBRID matrix, real-database evidence for advertised database behavior, transaction/result/precision/error correctness, packaged consumer/install test, reproducible CI, explicit unsupported features, and upgrade instructions from 0.x. Documentation or test-count badges alone do not satisfy this gate.
+
+Design PRs may be developed as drafts in parallel, but **must not be treated as implementing or approving a release contract**. Do not remove, overwrite or silently narrow an existing 0.x public feature while preparing this policy.
+
+## Rust SeaORM adapter release policy
+
+- Current crate `0.1.0`, `rust-version = "1.88"`, `sea-orm = "1"` (proxy), `sea-query = "0"`, and Rust driver dependencies `cubrid-tokio = "0.1"`, `cubrid-protocol = "0.1"`. These Cargo requirements do not constitute a tested support matrix.
+- Target a stable **SeaORM adapter 1.x** only with a tested, compatible **Rust driver 1.x generation**. Crate SemVer and feature/trait contracts remain independent. Be precise about which core driver crates the adapter actually depends upon.
+- SeaORM/SeaQuery version upgrades and Rust MSRV are separate compatibility axes; record typed values, async `Send`/`Sync`, `DbErr` error propagation, SQL generation and transaction outcomes as public behavior.
+- The current backend uses `DbBackend::MySql` and discards begin/commit/rollback errors in the proxy. Those must be independently redesigned, verified and documented before representing 1.0 as CUBRID-native/production-ready.
+- The checked-in `[patch.crates-io]` Git overrides are a release blocker until the exact crates.io dependency resolution and consumer install work without local root-workspace patches; see #1. Published patches do not establish a transitive runtime contract. **Observed source-metadata inconsistency:** `Cargo.toml` currently uses `https://github.com/cubrid-labs/...` for `package.repository` and all three CUBRID Git patch URLs, whereas the maintained repositories here are under `cubrid-lab`. Verify and correct these exact Git URLs in a separate reviewed metadata/dependency PR; this policy PR does not rewrite the manifest or claim the old URL is a valid install source.
+- Validate `cargo test --all-targets --all-features`, fmt, clippy, actual packaged crate consumption, supported Rust/SeaORM/driver versions and real CUBRID query/transaction/schema behavior. Offline mocked proxy tests cannot replace real database execution.
+- Follow Cargo 0.x compatibility rules for current releases. The driver crate's version bump alone does not justify an adapter version bump or override independent semantic versioning.
+
+Related: [SeaORM policy #23](https://github.com/cubrid-lab/sea-orm-cubrid/issues/23), [crate publication #1](https://github.com/cubrid-lab/sea-orm-cubrid/issues/1), [MSRV #26](https://github.com/cubrid-lab/sea-orm-cubrid/issues/26), [native backend design #28](https://github.com/cubrid-lab/sea-orm-cubrid/issues/28).

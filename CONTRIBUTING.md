@@ -1,6 +1,6 @@
 # Contributing to sea-orm-cubrid
 
-For issues, use clear type-only titles (`feat:`, `bug:`, etc.) without module scope and state observable acceptance criteria. PRs and commits use the repository's Conventional Commits/CI rules. Read the [shared issue, triage, PR and commit standard](https://github.com/cubrid-lab/.github/blob/main/docs/ISSUE_PR_COMMIT_STANDARD.md).
+For issues, use clear type-only titles (`feat:`, `bug:`, etc.) without module scope and state observable acceptance criteria. PRs and commits use the repository's Conventional Commits/CI rules. Read [AGENTS.md](AGENTS.md) for this repository's review guidance.
 
 Thank you for your interest in contributing to `sea-orm-cubrid`.
 

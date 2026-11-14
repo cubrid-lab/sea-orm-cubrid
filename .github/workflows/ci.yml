@@ -6,7 +6,62 @@ on:
   pull_request:
 
 jobs:
+  impact:
+    name: Classify CI impact
+    runs-on: ubuntu-latest
+    outputs:
+      docs_only: ${{ steps.detect.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - id: detect
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          docs_only() {
+            local p seen=0
+            while IFS= read -r -d '' p; do
+              seen=1
+              case "$p" in
+                *.md|*.mdx|*.rst|docs/*.png|docs/*.jpg|docs/*.jpeg|docs/*.svg|docs/*.webp) ;;
+                *) return 1 ;;
+              esac
+            done
+            [[ "$seen" == 1 ]]
+          }
+          docs_only < <(printf 'README.md\0docs/guide.md\0')
+          if docs_only < <(printf 'README.md\0src/main.source\0'); then exit 1; fi
+          if docs_only < <(printf '.github/workflows/ci.yml\0'); then exit 1; fi
+          if docs_only < /dev/null; then exit 1; fi
+          selected=false
+          if [[ "$EVENT_NAME" == pull_request ]] &&
+             git rev-parse --verify HEAD^2 >/dev/null 2>&1 &&
+             git -c core.quotePath=false diff --no-renames --name-only -z HEAD^1 HEAD > "$RUNNER_TEMP/changed-paths.bin"; then
+            if docs_only < "$RUNNER_TEMP/changed-paths.bin"; then selected=true; fi
+          else
+            echo "Unable to classify PR diff, or main push: full validation"
+          fi
+          echo "docs_only=$selected" >> "$GITHUB_OUTPUT"
+          echo "CI impact: docs_only=$selected" >> "$GITHUB_STEP_SUMMARY"
+
+  docs-check:
+    needs: impact
+    if: ${{ always() && needs.impact.outputs.docs_only == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - run: git diff --check HEAD^1 HEAD
+
   lint:
+    needs: impact
+    if: ${{ always() && needs.impact.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,6 +77,8 @@ jobs:
         run: cargo clippy --all-targets --all-features -- -D warnings
 
   test:
+    needs: impact
+    if: ${{ always() && needs.impact.outputs.docs_only != 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -39,3 +96,31 @@ jobs:
         run: cargo test --all-targets --all-features
       - name: coverage
         run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+
+  ci-gate:
+    name: CI gate
+    if: always()
+    needs: [impact, docs-check, lint, test]
+    runs-on: ubuntu-latest
+    env:
+      IMPACT: ${{ needs.impact.result }}
+      DOCS_ONLY: ${{ needs.impact.outputs.docs_only }}
+      DOCS_CHECK: ${{ needs.docs-check.result }}
+      J1: ${{ needs.lint.result }}
+      J2: ${{ needs.test.result }}
+    steps:
+      - name: Require selected jobs to pass
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$IMPACT" == success ]] || { echo "::error::Classifier did not succeed"; exit 1; }
+          if [[ "$DOCS_ONLY" == true ]]; then
+            [[ "$DOCS_CHECK" == success ]] || { echo "::error::Docs check: $DOCS_CHECK"; exit 1; }
+          fi
+          for result in "$J1" "$J2"; do
+            if [[ "$DOCS_ONLY" == true ]]; then
+              [[ "$result" == skipped || "$result" == success ]] || exit 1
+            else
+              [[ "$result" == success ]] || { echo "::error::Runtime check: $result"; exit 1; }
+            fi
+          done

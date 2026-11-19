@@ -12,9 +12,15 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
 jobs:
   release-pr:
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    # Pinned rather than ubuntu-latest: the version check needs Python 3.11+ (tomllib).
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -33,12 +39,43 @@ jobs:
         run: |
           set -euo pipefail
           version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["package"]["version"])')
-          if gh release view "v$version" --repo "$GH_REPO" >/dev/null 2>&1; then
-            echo "released=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::v$version has no GitHub Release; do not generate the next release PR."
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if ! draft=$(gh release view "v$version" --repo "$GH_REPO" --json isDraft --jq .isDraft 2>&1); then
+            if [[ "$draft" == *"release not found"* ]]; then
+              echo "::notice::v$version has no GitHub Release; do not generate the next release PR."
+            else
+              echo "::warning::Could not read GitHub Release v$version: $draft"
+            fi
             echo "released=false" >> "$GITHUB_OUTPUT"
+          elif [[ "$draft" != false ]]; then
+            echo "::notice::GitHub Release v$version is still a draft; do not generate the next release PR."
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=true" >> "$GITHUB_OUTPUT"
           fi
+
+      # Release Please will not open a new Release PR while a merged one keeps
+      # "autorelease: pending". This version is released, so mark its Release
+      # PR as tagged. Removing "pending" is what unblocks; "tagged" is
+      # informational.
+      - name: Mark the released version's Release PR as tagged
+        if: steps.current-version.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.current-version.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          prs=$(gh pr list --repo "$GH_REPO" --state merged --base main --label "autorelease: pending" \
+            --json number,title --jq ".[] | select(.title == \"chore(main): release $VERSION\") | .number")
+          for pr in $prs; do
+            gh api --method DELETE "repos/$GH_REPO/issues/$pr/labels/autorelease:%20pending" >/dev/null
+            gh api --method POST "repos/$GH_REPO/issues/$pr/labels" -f "labels[]=autorelease: tagged" >/dev/null \
+              || echo "::warning::Removed 'autorelease: pending' from #$pr but could not add 'autorelease: tagged'."
+            echo "Marked Release PR #$pr for $VERSION as tagged" >> "$GITHUB_STEP_SUMMARY"
+          done
+
       - name: Propose version and changelog in a Release PR
         if: steps.current-version.outputs.released == 'true'
         uses: googleapis/release-please-action@v5

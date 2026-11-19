@@ -13,33 +13,58 @@ This crate uses [Release Please](https://github.com/googleapis/release-please) (
 
 ## How versions are chosen
 
-PRs are squash-merged, so the PR title becomes the commit subject that Release Please reads. `.github/workflows/pr-title.yml` requires `type: description` or `type(scope): description`, with a type from `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+Release Please reads the commit subjects on `main`. With the [required merge settings](#repository-settings) (squash merge only, commit title = PR title), the subject is the PR title, which `.github/workflows/pr-title.yml` checks: `type: description` or `type(scope): description`, with a type from `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
 
 | Commit on `main` | Next version while 0.x | From 1.0.0 |
 | --- | --- | --- |
-| `fix:` | patch (0.1.0 → 0.1.1) | patch |
+| `fix:`, `perf:`, `revert:` | patch (0.1.0 → 0.1.1) | patch |
 | `feat:` | minor (0.1.0 → 0.2.0) | minor |
 | `feat!:`, `fix!:` or a `BREAKING CHANGE:` footer | **minor** (0.1.0 → 0.2.0) | major |
-| `docs:`, `test:`, `ci:`, `chore:` and the rest | no release on their own | same |
+| `docs:`, `style:`, `refactor:`, `test:`, `build:`, `ci:`, `chore:` | no release on their own, not listed in the CHANGELOG | same |
 
 `bump-minor-pre-major: true` keeps a breaking change before 1.0 a minor bump, as Cargo's SemVer rules treat `0.y` minor versions as incompatible. Without it Release Please would turn the first breaking change into 1.0.0, while the [v1.0.0 milestone](../ROADMAP.md) still has open requirements. Choose 1.0.0 deliberately, for example with a `Release-As: 1.0.0` commit footer.
 
+**Silently dropped commits.** Release Please's commit parser throws on some commit bodies, for example a line that starts with a nested call such as `where(eq(...`. Such a commit is left out of the version calculation and the CHANGELOG without an error. The squash message setting below (PR body or blank, instead of the list of branch commits) makes this less likely; reviewers still compare the Release PR's entries with the PRs merged since the last release and add anything missing by hand.
+
 ## CHANGELOG ownership
 
-**PRs do not edit `CHANGELOG.md`.** Release Please writes each version section from the Conventional Commit titles merged since the last release and inserts it above `## [0.1.0]`. Describe user-visible and breaking changes in the PR title and description instead; put `BREAKING CHANGE: <what to do>` in the squash commit body when a breaking change needs an explanation.
+**PRs do not edit `CHANGELOG.md`.** Release Please writes each version section from the Conventional Commit subjects merged since the last release and inserts it above `## [0.1.0]`. Describe user-visible and breaking changes in the PR title and description instead; put `BREAKING CHANGE: <what to do>` in the squash commit body when a breaking change needs an explanation.
 
 ## Releasing
 
-1. **Release PR.** After a releasable commit lands on `main`, the workflow opens `chore(main): release X.Y.Z`. It bumps `version` in `Cargo.toml`, `.release-please-manifest.json` and `CHANGELOG.md`. (`Cargo.lock` is not committed in this repository, so there is none to update.) A version is not released because the PR exists.
+1. **Release PR.** After a releasable commit lands on `main`, the workflow opens `chore(main): release X.Y.Z` from the head branch `release-please--branches--main--components--sea-orm-cubrid`. It bumps `version` in `Cargo.toml`, `.release-please-manifest.json` and `CHANGELOG.md`. (`Cargo.lock` is not committed in this repository, so there is none to update.) A version is not released because the PR exists.
 2. **CI on the Release PR.** `ci.yml` runs fmt, clippy, tests and coverage on every PR. **When the PR was created with `GITHUB_TOKEN`, no CI runs automatically** (GitHub does not trigger workflows from `GITHUB_TOKEN` events): close and reopen the PR so the checks run. Never merge with a failed or missing check.
-3. **Review** the version and the generated CHANGELOG section against the merged commits, and write the curated `docs/releases/vX.Y.Z.md` ([RELEASE_NOTES_QUALITY.md](RELEASE_NOTES_QUALITY.md)) in a separate `docs:` PR. Edits to the Release PR branch are discarded whenever `main` moves, so make any CHANGELOG correction as the last step before merging.
-4. **Merge** the Release PR (squash; the title stays `chore(main): release X.Y.Z`). Merging only changes `main`.
-5. **Tag and release** the merge commit: `gh release create vX.Y.Z --target <merge-sha> --title "sea-orm-cubrid vX.Y.Z" --notes-file docs/releases/vX.Y.Z.md`. `sync-release-notes.yml` keeps the Release body equal to the reviewed note on later edits.
-6. **Mark the Release PR as released.** Release Please labels its PR `autorelease: pending` and refuses to open the next Release PR while a merged PR keeps that label: `gh pr edit <number> --remove-label "autorelease: pending" --add-label "autorelease: tagged"`.
+3. **Release notes first.** Write the curated `docs/releases/vX.Y.Z.md` ([RELEASE_NOTES_QUALITY.md](RELEASE_NOTES_QUALITY.md)) in a separate `docs:` PR and merge it. This regenerates the Release PR.
+4. **Review** the version and the generated CHANGELOG section against the merged PRs. Edits to the Release PR branch are discarded whenever `main` moves, so make any CHANGELOG correction as the last step before merging.
+5. **Merge** the Release PR (squash; the title stays `chore(main): release X.Y.Z`). Merging only changes `main`.
+6. **Tag and release** the merge commit: `gh release create vX.Y.Z --target <merge-sha> --title "sea-orm-cubrid vX.Y.Z" --notes-file docs/releases/vX.Y.Z.md` (not as a draft). `sync-release-notes.yml` keeps the Release body equal to the reviewed note on later edits.
+7. **Release PR label.** On the next run (any push to `main`, or **Run workflow** on "Prepare reviewed Release PR"), once `vX.Y.Z` has a non-draft GitHub Release, the workflow removes `autorelease: pending` from the merged `chore(main): release X.Y.Z` PR and adds `autorelease: tagged`. Release Please refuses to open the next Release PR while a merged one keeps `autorelease: pending`; if the automatic step ever fails, remove that label by hand: `gh pr edit <number> --remove-label "autorelease: pending"`.
 
-The workflow refuses to propose a newer version until the version in `Cargo.toml` on `main` has a GitHub Release `vX.Y.Z`, so between steps 4 and 5 it logs a notice and does nothing. When the crate is published on crates.io, add a registry check to that step (as `drizzle-cubrid` and `cubrid-client` do for npm).
+The workflow refuses to propose a newer version until the version in `Cargo.toml` on `main` has a non-draft GitHub Release `vX.Y.Z`, so between steps 5 and 6 it logs a notice and does nothing; if it cannot read the GitHub Release (an API error rather than "not found"), it logs a warning and also does nothing. When the crate is published on crates.io, add a registry check to that step (as `drizzle-cubrid` and `cubrid-client` do for npm).
+
+### The first Release PR (0.1.1)
+
+The first Release PR will propose **0.1.1**. Its only releasable commit since `v0.1.0` is `aeb251a fix: bump MSRV to 1.75, fix rustfmt formatting`, and that bullet is misleading: the MSRV actually went from **1.70** at `v0.1.0` to **1.88** today, and the raise to 1.88 was made in `7b2ac8e ci: remove MSRV from test matrix, test only on stable`, a `ci:` commit the CHANGELOG hides. Before merging, as the last edit, either:
+
+- rewrite the bullet to state the real change (`rust-version` 1.70 → 1.88), or
+- if the MSRV raise is treated as breaking, land a commit whose body has a `Release-As: 0.2.0` footer so the PR proposes 0.2.0 instead, or
+- leave the Release PR open until there is a real change to release.
+
+Do not set `last-release-sha` or otherwise rewrite the release history to hide these commits.
 
 ## Repository settings
 
+These are settings in the repository, not files; check them before the first Release PR.
+
+- **Required: squash merge only.** Settings → General → Pull Requests: allow squash merging only (disable merge commits and rebase merging). Set **Default commit message** for squash to **Pull request title** for the title, and **Pull request description** or **blank** for the body (API: `squash_merge_commit_title=PR_TITLE`, `squash_merge_commit_message=PR_BODY` or `BLANK`). With the current setting (`COMMIT_OR_PR_TITLE` and `COMMIT_MESSAGES`), a single-commit PR keeps that commit's subject instead of the checked PR title, and the body lists every branch commit, so Release Please can read the wrong type or drop the commit. Merge commits and rebase merges bypass the PR-title check entirely.
+- **Recommended:** make the `Check PR title` check required in the branch protection or ruleset for `main`.
 - **Settings → Actions → General → Workflow permissions:** "Allow GitHub Actions to create and approve pull requests" must stay enabled, or the workflow cannot open the Release PR.
-- **Optional `RELEASE_PLEASE_TOKEN` secret:** a fine-grained token limited to this repository (Contents and Pull requests: read and write). With it, the Release PR triggers CI automatically. Without it the workflow falls back to `GITHUB_TOKEN` and CI must be started by hand (step 2). A GitHub App token minted per run is an alternative; do not store an expiring App token as a long-lived secret.
+- **Labels (one time):** this repository has no label sync, and neither autorelease label exists yet. Create both labels once:
+
+  ```bash
+  gh api repos/cubrid-lab/sea-orm-cubrid/labels -f name="autorelease: pending" -f color=ededed -f description="Release Please: Release PR not yet tagged"
+  gh api repos/cubrid-lab/sea-orm-cubrid/labels -f name="autorelease: tagged" -f color=ededed -f description="Release Please: Release PR tagged and released"
+  ```
+
+  Release Please also creates `autorelease: pending` itself when it first labels a PR, so a "label already exists" error for it is harmless.
+- **Optional `RELEASE_PLEASE_TOKEN` secret:** a fine-grained token limited to this repository (Contents and Pull requests: read and write). With it, the Release PR triggers CI automatically. Without it the workflow falls back to `GITHUB_TOKEN` and CI must be started by closing and reopening the PR (step 2). A GitHub App token minted per run is an alternative; do not store an expiring App token as a long-lived secret.

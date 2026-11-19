@@ -137,5 +137,5 @@ This crate depends on the `cubrid-rs` workspace crates (`cubrid-protocol`, `cubr
 
 1. Check the [README](../README.md) for basic setup
 2. Review [API Reference](API_REFERENCE.md) for all available types and functions
-3. Check [cubrid-rs documentation](https://github.com/cubrid-labs/cubrid-rs) for protocol-level issues
-4. Open an issue on [GitHub](https://github.com/cubrid-labs/sea-orm-cubrid/issues)
+3. Check [cubrid-rs documentation](https://github.com/cubrid-lab/cubrid-rs) for protocol-level issues
+4. Open an issue on [GitHub](https://github.com/cubrid-lab/sea-orm-cubrid/issues)

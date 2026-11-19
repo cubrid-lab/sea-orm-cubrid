@@ -6,7 +6,7 @@ rust-version = "1.88"
 description = "SeaORM backend for CUBRID database"
 license = "MIT"
 authors = ["Gyeongjun Paik <paikend@gmail.com>", "Yeongseon Choe <yeongseon.choe@gmail.com>"]
-repository = "https://github.com/cubrid-labs/sea-orm-cubrid"
+repository = "https://github.com/cubrid-lab/sea-orm-cubrid"
 keywords = ["cubrid", "sea-orm", "orm", "database", "async"]
 categories = ["database"]
 
@@ -26,6 +26,6 @@ tokio = { version = "1", features = ["full"] }
 unexpected_cfgs = { level = "allow", check-cfg = ['cfg(coverage)'] }
 
 [patch.crates-io]
-cubrid-protocol = { git = "https://github.com/cubrid-labs/cubrid-rs", package = "cubrid-protocol" }
-cubrid-client = { git = "https://github.com/cubrid-labs/cubrid-rs", package = "cubrid-client" }
-cubrid-tokio = { git = "https://github.com/cubrid-labs/cubrid-rs", package = "cubrid-tokio" }
+cubrid-protocol = { git = "https://github.com/cubrid-lab/cubrid-rs", package = "cubrid-protocol" }
+cubrid-client = { git = "https://github.com/cubrid-lab/cubrid-rs", package = "cubrid-client" }
+cubrid-tokio = { git = "https://github.com/cubrid-lab/cubrid-rs", package = "cubrid-tokio" }

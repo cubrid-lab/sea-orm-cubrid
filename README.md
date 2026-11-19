@@ -8,10 +8,10 @@
 
 <!-- BADGES:START -->
 [![crates.io](https://img.shields.io/crates/v/sea-orm-cubrid.svg)](https://crates.io/crates/sea-orm-cubrid)
-[![CI](https://github.com/cubrid-labs/sea-orm-cubrid/actions/workflows/ci.yml/badge.svg)](https://github.com/cubrid-labs/sea-orm-cubrid/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-95%25%2B-brightgreen.svg)](https://github.com/cubrid-labs/sea-orm-cubrid)
+[![CI](https://github.com/cubrid-lab/sea-orm-cubrid/actions/workflows/ci.yml/badge.svg)](https://github.com/cubrid-lab/sea-orm-cubrid/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-95%25%2B-brightgreen.svg)](https://github.com/cubrid-lab/sea-orm-cubrid)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/cubrid-labs/sea-orm-cubrid)](https://github.com/cubrid-labs/sea-orm-cubrid)
+[![GitHub stars](https://img.shields.io/github/stars/cubrid-lab/sea-orm-cubrid)](https://github.com/cubrid-lab/sea-orm-cubrid)
 <!-- BADGES:END -->
 
 SeaORM backend crate for CUBRID via SeaORM's `ProxyDatabaseTrait`.
@@ -124,8 +124,8 @@ See [`ROADMAP.md`](ROADMAP.md) for this project's direction and next milestones.
 
 | Package | Description |
 |:---|:---|
-| [cubrid-rs](https://github.com/cubrid-labs/cubrid-rs) | Native Rust driver (sync + async) |
-| [sea-orm-cubrid](https://github.com/cubrid-labs/sea-orm-cubrid) | SeaORM backend for CUBRID (this package) |
+| [cubrid-rs](https://github.com/cubrid-lab/cubrid-rs) | Native Rust driver (sync + async) |
+| [sea-orm-cubrid](https://github.com/cubrid-lab/sea-orm-cubrid) | SeaORM backend for CUBRID (this package) |
 
 ## Disclaimer
 

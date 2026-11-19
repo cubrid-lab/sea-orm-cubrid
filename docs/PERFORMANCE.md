@@ -229,7 +229,7 @@ perf report
 
 ### External Benchmarks
 
-See [`cubrid-benchmark`](https://github.com/cubrid-labs/cubrid-benchmark) for comparative benchmarks across:
+See [`cubrid-benchmark`](https://github.com/cubrid-lab/cubrid-benchmark) for comparative benchmarks across:
 - sea-orm-cubrid (SeaORM + cubrid-rs)
 - Other CUBRID drivers (Python, Node.js, Go)
 - Sea-ORM with other database backends
@@ -256,5 +256,5 @@ Benchmark environment details will be available once criterion-based benchmarks 
 
 - [API Reference](./API_REFERENCE.md) — SeaORM CUBRID backend API
 - [Troubleshooting](./TROUBLESHOOTING.md) — Common issues and solutions
-- [`cubrid-rs` Performance](https://github.com/cubrid-labs/cubrid-rs/blob/main/docs/PERFORMANCE.md) — Underlying driver performance
-- [`cubrid-benchmark`](https://github.com/cubrid-labs/cubrid-benchmark) — Comparative benchmarks across drivers
+- [`cubrid-rs` Performance](https://github.com/cubrid-lab/cubrid-rs/blob/main/docs/PERFORMANCE.md) — Underlying driver performance
+- [`cubrid-benchmark`](https://github.com/cubrid-lab/cubrid-benchmark) — Comparative benchmarks across drivers

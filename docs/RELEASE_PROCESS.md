@@ -24,11 +24,11 @@ Release Please reads the commit subjects on `main`. With the [required merge set
 
 `bump-minor-pre-major: true` keeps a breaking change before 1.0 a minor bump, as Cargo's SemVer rules treat `0.y` minor versions as incompatible. Without it Release Please would turn the first breaking change into 1.0.0, while the [v1.0.0 milestone](../ROADMAP.md) still has open requirements. Choose 1.0.0 deliberately, for example with a `Release-As: 1.0.0` commit footer.
 
-**Silently dropped commits.** Release Please's commit parser throws on some commit bodies, for example a line that starts with a nested call such as `where(eq(...`. Such a commit is left out of the version calculation and the CHANGELOG without an error. The squash message setting below (PR body or blank, instead of the list of branch commits) makes this less likely; reviewers still compare the Release PR's entries with the PRs merged since the last release and add anything missing by hand.
+**Silently dropped commits.** Release Please's commit parser throws on some commit bodies, for example a line that starts with a nested call such as `where(eq(...`. Such a commit is left out of the version calculation and the CHANGELOG without an error. The blank squash message setting below (instead of the list of branch commits) makes this less likely; reviewers still compare the Release PR's entries with the PRs merged since the last release and add anything missing by hand.
 
 ## CHANGELOG ownership
 
-**PRs do not edit `CHANGELOG.md`.** Release Please writes each version section from the Conventional Commit subjects merged since the last release and inserts it above `## [0.1.0]`. Describe user-visible and breaking changes in the PR title and description instead; put `BREAKING CHANGE: <what to do>` in the squash commit body when a breaking change needs an explanation.
+**PRs do not edit `CHANGELOG.md`.** Release Please writes each version section from the Conventional Commit subjects merged since the last release and inserts it above `## [0.1.0]`. Describe user-visible and breaking changes in the PR title and description instead; type `BREAKING CHANGE: <what to do>` into the blank squash commit body while merging if a breaking change needs an explanation.
 
 ## Releasing
 
@@ -54,9 +54,9 @@ Do not set `last-release-sha` or otherwise rewrite the release history to hide t
 
 ## Repository settings
 
-These are settings in the repository, not files; check them before the first Release PR.
+These are settings in the repository, not files.
 
-- **Required: squash merge only.** Settings → General → Pull Requests: allow squash merging only (disable merge commits and rebase merging). Set **Default commit message** for squash to **Pull request title** for the title, and **Pull request description** or **blank** for the body (API: `squash_merge_commit_title=PR_TITLE`, `squash_merge_commit_message=PR_BODY` or `BLANK`). With the current setting (`COMMIT_OR_PR_TITLE` and `COMMIT_MESSAGES`), a single-commit PR keeps that commit's subject instead of the checked PR title, and the body lists every branch commit, so Release Please can read the wrong type or drop the commit. Merge commits and rebase merges bypass the PR-title check entirely.
+- **Required merge settings (current values; keep them).** Settings → General → Pull Requests: squash merging only (`allow_squash_merge=true`, `allow_merge_commit=false`, `allow_rebase_merge=false`), with the squash commit title set to the **Pull request title** and the squash commit message **blank** (`squash_merge_commit_title=PR_TITLE`, `squash_merge_commit_message=BLANK`). The title is then always the checked PR title, and the body holds only what the person merging types in, such as a `BREAKING CHANGE:` or `Release-As:` footer, so Release Please reads the right type and does not trip over a list of branch commits. Do not re-enable merge commits or rebase merging: they bypass the PR-title check. Changing these settings back (for example to `COMMIT_OR_PR_TITLE`, where a single-commit PR keeps its commit subject instead of the PR title) breaks the assumptions of this process.
 - **Recommended:** make the `Check PR title` check required in the branch protection or ruleset for `main`.
 - **Settings → Actions → General → Workflow permissions:** "Allow GitHub Actions to create and approve pull requests" must stay enabled, or the workflow cannot open the Release PR.
 - **Labels (one time):** this repository has no label sync, and neither autorelease label exists yet. Create both labels once:

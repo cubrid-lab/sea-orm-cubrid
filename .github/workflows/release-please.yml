@@ -1,0 +1,51 @@
+name: Prepare reviewed Release PR
+
+# PR-only: this workflow proposes the next version and CHANGELOG in a Release
+# PR. It never tags, creates a GitHub Release or publishes a crate; those stay
+# manual maintainer steps (docs/RELEASE_PROCESS.md).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-pr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # The crate is not on crates.io, so the GitHub Release is the release
+      # record. A merged Release PR must be tagged and released before another
+      # version is proposed.
+      - name: Wait for the current version's GitHub Release before proposing the next
+        id: current-version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["package"]["version"])')
+          if gh release view "v$version" --repo "$GH_REPO" >/dev/null 2>&1; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::v$version has no GitHub Release; do not generate the next release PR."
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Propose version and changelog in a Release PR
+        if: steps.current-version.outputs.released == 'true'
+        uses: googleapis/release-please-action@v5
+        with:
+          # Supply a restricted PAT for automatic PR CI (or mint an App token per run).
+          # With GITHUB_TOKEN, manually rerun CI on generated Release PRs.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-release: true

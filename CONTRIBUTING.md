@@ -75,7 +75,14 @@ scrutiny. No existing repository CI or release safeguards are waived.
 2. Add or update tests for behavior changes.
 3. Ensure lint and offline tests pass before submitting.
 4. Run integration tests for connection/backend-related updates.
-5. Update `CHANGELOG.md` for user-visible changes.
+5. Title the PR as a Conventional Commit, `type: description` or
+   `type(scope): description` (`feat!:` for a breaking change). PRs are
+   squash-merged, so the title becomes the commit subject on `main`;
+   `.github/workflows/pr-title.yml` checks it, and Release Please uses it to
+   choose the next version.
+6. Do **not** edit `CHANGELOG.md`. Release Please generates it in the Release
+   PR; describe user-visible changes in the PR description instead. See
+   [the release process](docs/RELEASE_PROCESS.md).
 
 ## Repository-local issues and agent ownership
 

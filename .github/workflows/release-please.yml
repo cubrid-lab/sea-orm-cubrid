@@ -1,0 +1,105 @@
+name: Prepare reviewed Release PR
+
+# PR-only: this workflow proposes the next version and CHANGELOG in a Release
+# PR. It never tags, creates a GitHub Release or publishes a crate; those stay
+# manual maintainer steps (docs/RELEASE_PROCESS.md).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-pr:
+    if: github.ref == 'refs/heads/main'
+    # Pinned rather than ubuntu-latest: the version check needs Python 3.11+ (tomllib).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # The crate is not on crates.io, so the GitHub Release is the release
+      # record. A merged Release PR must be tagged and released before another
+      # version is proposed.
+      - name: Wait for the current version's GitHub Release before proposing the next
+        id: current-version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["package"]["version"])')
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Unexpected package version '$version'; expected X.Y.Z or X.Y.Z-pre."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if ! draft=$(gh release view "v$version" --repo "$GH_REPO" --json isDraft --jq .isDraft 2>&1); then
+            if [[ "$draft" == *"release not found"* ]]; then
+              echo "::notice::v$version has no GitHub Release; do not generate the next release PR."
+            else
+              echo "::warning::Could not read GitHub Release v$version: $draft"
+            fi
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          elif [[ "$draft" != false ]]; then
+            echo "::notice::GitHub Release v$version is still a draft; do not generate the next release PR."
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Release Please will not open a new Release PR while a merged one keeps
+      # "autorelease: pending". This version is released, so mark its Release
+      # PR as tagged. Removing "pending" is what unblocks; "tagged" is
+      # informational.
+      - name: Mark the released version's Release PR as tagged
+        if: steps.current-version.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ steps.current-version.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="chore(main): release $VERSION"
+          pending=$(gh pr list --repo "$GH_REPO" --state merged --base main --label "autorelease: pending" \
+            --json number,title --jq '.[] | "\(.number)\t\(.title)"')
+          matched=false
+          while IFS=$'\t' read -r pr title; do
+            [[ -n "$pr" && "$title" == "$expected" ]] || continue
+            matched=true
+            if ! out=$(gh api --method DELETE "repos/$GH_REPO/issues/$pr/labels/autorelease:%20pending" 2>&1); then
+              if [[ "$out" != *"HTTP 404"* ]]; then
+                echo "::error::Could not remove 'autorelease: pending' from #$pr: $out"
+                exit 1
+              fi
+              echo "::notice::'autorelease: pending' was already removed from #$pr."
+            fi
+            gh api --method POST "repos/$GH_REPO/issues/$pr/labels" -f "labels[]=autorelease: tagged" >/dev/null \
+              || echo "::warning::Removed 'autorelease: pending' from #$pr but could not add 'autorelease: tagged'."
+            echo "Marked Release PR #$pr for $VERSION as tagged" >> "$GITHUB_STEP_SUMMARY"
+          done <<< "$pending"
+          if [[ "$matched" == false && -n "$pending" ]]; then
+            echo "::notice::Merged PRs still labeled 'autorelease: pending', none titled '$expected': $(tr '\t\n' ' ;' <<< "$pending")"
+          fi
+
+      - name: Propose version and changelog in a Release PR
+        if: steps.current-version.outputs.released == 'true'
+        uses: googleapis/release-please-action@v5
+        with:
+          # Supply a restricted PAT for automatic PR CI (or mint an App token per run).
+          # With GITHUB_TOKEN, manually rerun CI on generated Release PRs.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-release: true

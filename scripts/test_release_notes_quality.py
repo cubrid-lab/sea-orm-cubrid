@@ -33,6 +33,27 @@ class ReleaseNotesQualityTests(unittest.TestCase):
         body = GOOD.replace(line, line + "\n" + line)
         self.assertTrue(any("duplicate bullet" in x for x in self.check(body)))
 
+    def test_second_change_without_credit_is_rejected(self):
+        # A credited first entry must not hide an unattributed second entry.
+        body = GOOD.replace(
+            "\n**Full Changelog:**",
+            "\n- Improve connection logging without an author\n\n**Full Changelog:**",
+        )
+        self.assertTrue(any("missing contributor credit" in x for x in self.check(body)))
+
+    def test_bare_contributor_mention_is_not_an_entry_byline(self):
+        body = GOOD.replace(" by @reviewed-human", " (thanks @reviewed-human)")
+        self.assertTrue(any("missing contributor credit" in x for x in self.check(body)))
+
+    def test_compatibility_and_upgrade_warnings_need_no_credit(self):
+        body = GOOD.replace(
+            "### Bug Fixes",
+            "### Compatibility\n\n- This adapter uses an asynchronous proxy, not a native SeaORM backend.\n\n"
+            "### Upgrade notes\n\n- Review compatibility before upgrading from a previous tag.\n\n"
+            "### Bug Fixes",
+        )
+        self.assertEqual([], self.check(body))
+
     def test_generated_bullet_is_not_curated(self):
         body = GOOD.replace("- Report connection errors", "* fix: report connection errors")
         self.assertTrue(any("uncurated" in x for x in self.check(body)))

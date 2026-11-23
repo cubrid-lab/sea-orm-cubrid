@@ -18,6 +18,6 @@
 
 ## Compatibility
 
-- Rust 1.75+ (edition 2021)
+- Rust 1.88+ (edition 2021)
 - SeaORM 1.x
 - CUBRID 10.2–11.4 (via cubrid-rs driver)
